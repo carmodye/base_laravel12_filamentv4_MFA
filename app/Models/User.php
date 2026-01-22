@@ -1,6 +1,9 @@
 <?php
 
+
 namespace App\Models;
+
+use App\Models\Organization;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use BezhanSalleh\FilamentShield\Traits\HasPanelShield;
@@ -13,6 +16,16 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+    ];
+    // Many-to-many: organizations
+    public function organizations()
+    {
+        return $this->belongsToMany(Organization::class);
+    }
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
 

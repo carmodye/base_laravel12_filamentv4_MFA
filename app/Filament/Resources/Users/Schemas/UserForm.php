@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Hash;
 
 class UserForm
 {
@@ -19,25 +19,16 @@ class UserForm
                     ->label('Email address')
                     ->email()
                     ->required(),
-
+                DateTimePicker::make('email_verified_at'),
                 TextInput::make('password')
                     ->password()
-                    ->confirmed()
-                    ->dehydrateStateUsing(fn ($state) => Hash::make($state))
-                    ->dehydrated(fn ($state) => filled($state))
-                    ->required(fn (string $context): bool => $context === 'create'),
-                TextInput::make('password_confirmation')
-                    ->required(fn (string $context): bool => $context === 'create')
-                    ->password()
-                    ->dehydrated(false),
-
+                    ->required(fn ($context) => $context === 'create')
+                    ->dehydrateStateUsing(fn ($state) => !empty($state) ? bcrypt($state) : null)
+                    ->dehydrated(fn ($state) => !empty($state)),
                 Select::make('roles')
-                    ->searchable()
-                    ->preload()
-                    ->required()
                     ->multiple()
                     ->relationship('roles', 'name')
-                    ->label('Roles'),
+                    ->preload(),
             ]);
     }
 }
