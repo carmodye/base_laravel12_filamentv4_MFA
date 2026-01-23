@@ -59,3 +59,13 @@ sail php artisan breezy:install
 sail php artisan migrate
 
 User Model and Admin Panel modified
+
+
+Created user panel where business apps will be 3 roles and new seeder
+
+Changes Made:
+DatabaseSeeder.php:
+Creates/finds admin user with admin@example.com.
+Assigns super_admin role directly (avoids command issues in seeders).
+Permissions: Run php artisan shield:generate --all --panel=admin separately (as done above).
+

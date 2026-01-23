@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserResource extends Resource
 {
@@ -22,6 +23,17 @@ class UserResource extends Resource
     protected static ?string $recordTitleAttribute = 'name';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->user()->hasRole('super_admin')) {
+            return $query;
+        }
+
+        return $query->whereHas('organizations', fn ($q) => $q->whereHas('users', fn ($qq) => $qq->where('users.id', auth()->id())));
+    }
 
     public static function form(Schema $schema): Schema
     {
