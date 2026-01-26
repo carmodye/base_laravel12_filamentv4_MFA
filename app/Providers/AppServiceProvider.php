@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        //
+        app()->bind(\Filament\Http\Responses\Auth\Contracts\LogoutResponse::class, \App\Http\Responses\LogoutResponse::class);
     }
 
     public function boot(): void

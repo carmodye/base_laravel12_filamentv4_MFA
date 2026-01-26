@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -8,6 +9,12 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// User panel login route for logout redirect
+Route::get('/user/login', function () {
+    // Return your user login view or controller here
+    //return 'User Login Page';
+    return redirect('/admin'); // Replace with your actual login view/controller
+})->name('login');
 
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
