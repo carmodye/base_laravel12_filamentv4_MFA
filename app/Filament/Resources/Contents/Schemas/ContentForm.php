@@ -10,32 +10,14 @@ class ContentForm
 {
     public static function configure(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->required(),
-                Select::make('organization_id')
-                    ->relationship('organization', 'name')
-                    ->required(),
-                TextInput::make('filename')
-                    ->required(),
-                TextInput::make('original_name')
-                    ->required(),
-                TextInput::make('path')
-                    ->required(),
-                TextInput::make('mime_type')
-                    ->required(),
-                TextInput::make('size')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('width')
-                    ->numeric(),
-                TextInput::make('height')
-                    ->numeric(),
-                TextInput::make('aspect_ratio')
-                    ->numeric(),
-                TextInput::make('metadata'),
-            ]);
+        $user = auth()->user();
+        $orgOptions = $user ? $user->organizations()->pluck('name', 'organizations.id')->toArray() : [];
+        $isEdit = request()->routeIs('filament.resources.contents.edit');
+        // Only allow organization change on edit, all fields on create (but create is disabled)
+        return $schema->components([
+            Select::make('organization_id')
+                ->options($orgOptions)
+                ->required(),
+        ]);
     }
 }

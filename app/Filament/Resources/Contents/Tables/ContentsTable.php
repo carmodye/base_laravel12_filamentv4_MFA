@@ -5,16 +5,16 @@ namespace App\Filament\Resources\Contents\Tables;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
 use Illuminate\Support\Facades\Log;
-use App\Models\Content;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\Content;
 use App\Models\Organization;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\TrashedFilter;
 
 class ContentsTable
 {
@@ -31,7 +31,14 @@ class ContentsTable
                 TextColumn::make('original_name')
                     ->searchable(),
                 TextColumn::make('path')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('s3_url')
+                    ->label('S3 Link')
+                    ->icon('heroicon-o-link')
+                    ->url(fn ($record) => $record->s3_url)
+                    ->openUrlInNewTab()
+                    ->formatStateUsing(fn ($record) => $record->s3_url ? '' : null),
                 TextColumn::make('mime_type')
                     ->searchable(),
                 TextColumn::make('size')
@@ -65,7 +72,8 @@ class ContentsTable
                             ->required()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'])
                             ->maxSize(51200)
-                            ->disk('s3'),
+                            ->disk('s3')
+                            ->preserveFilenames(),
                     ])
                     ->action(function (array $data) {
                         Log::info('Upload action called');
@@ -80,16 +88,35 @@ class ContentsTable
                         }
                         $mimeType = $disk->mimeType($filePath);
                         $size = $disk->size($filePath);
-                        $originalName = basename($filePath);
-                        $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+                        // Always use the user's original filename if available
+                        $originalName = null;
+                        if (isset($_FILES) && is_array($_FILES)) {
+                            foreach ($_FILES as $file) {
+                                if (isset($file['name']) && !empty($file['name'])) {
+                                    $originalName = $file['name'];
+                                    break;
+                                }
+                            }
+                        }
+                        if (!$originalName && is_object($data['file']) && method_exists($data['file'], 'getClientOriginalName')) {
+                            $originalName = $data['file']->getClientOriginalName();
+                        }
+                        if (!$originalName) {
+                            // Fallback: try to get the last part after the last '/'
+                            $parts = explode('/', $filePath);
+                            $last = end($parts);
+                            $originalName = $last;
+                        }
+                        $filename = $originalName;
                         // Download to temp for processing
                         $tempPath = tempnam(sys_get_temp_dir(), 'upload');
                         file_put_contents($tempPath, $disk->get($filePath));
                         $rootOrg = self::getRootOrganization($user->organizations()->first());
-                        $rootDir = $rootOrg ? Str::slug($rootOrg->name) : 'unassigned';
-                        $filename = Str::uuid() . ($extension ? ".{$extension}" : '');
-                        $path = "uploads/{$rootDir}/{$user->id}/" . now()->format('Y/m/d');
-                        $storedPath = $path . '/' . $filename;
+                        $orgSlug = $rootOrg ? Str::slug($rootOrg->name) : 'unassigned';
+                        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+                        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+                        $timestamp = time();
+                        $storedPath = "{$orgSlug}/{$baseName}{$timestamp}" . ($extension ? ".{$extension}" : '');
                         $disk->move($filePath, $storedPath);
                         // Extract metadata
                         $metadata = [];
@@ -105,34 +132,41 @@ class ContentsTable
                             }
                         }
                         unlink($tempPath);
-                        Content::create([
+                        $s3Url = $disk->url($storedPath);
+                        $content = Content::create([
                             'user_id' => $user->id,
                             'organization_id' => $rootOrg?->id,
-                            'filename' => $filename,
-                            'original_name' => $originalName,
-                            'path' => $storedPath,
+                            'filename' => basename($storedPath), // S3 object name
+                            'original_name' => $filename, // user's original filename
+                            'path' => $storedPath, // S3 path
                             'mime_type' => $mimeType,
                             'size' => $size,
                             'width' => $width,
                             'height' => $height,
                             'aspect_ratio' => $aspectRatio,
                             'metadata' => $metadata,
+                            's3_url' => $s3Url,
                         ]);
+                        Log::info('S3 File URL: ' . $s3Url);
                         Log::info('Content created via action');
-                    }),
-            ])
-            ->recordActions([
-                EditAction::make(),
-                Action::make('process')
-                    ->label('Process with FFmpeg')
-                    ->action(function (Content $record) {
-                        ProcessContentWithFfmpeg::dispatch($record);
                     }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                    Action::make('restore')
+                        ->label('Restore')
+                        ->requiresConfirmation()
+                        ->accessSelectedRecords()
+                        ->action(function ($records) {
+                            foreach ($records as $record) {
+                                if (method_exists($record, 'restore')) {
+                                    $record->restore();
+                                }
+                            }
+                        })
+                        ->visible(fn ($records) => collect($records)->filter(fn ($r) => method_exists($r, 'trashed') && $r->trashed())->count() > 0),
+                ])
             ]);
     }
 

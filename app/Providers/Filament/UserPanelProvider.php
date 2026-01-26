@@ -44,7 +44,6 @@ class UserPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
-                \App\Filament\Widgets\DemoUploadWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

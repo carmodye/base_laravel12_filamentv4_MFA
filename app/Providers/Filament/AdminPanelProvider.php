@@ -51,7 +51,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
-                \App\Filament\Widgets\DemoUploadWidget::class,
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
