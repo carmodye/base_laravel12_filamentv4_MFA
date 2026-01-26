@@ -8,12 +8,20 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+
 Route::get('/email/verify', function () {
     return view('auth.verify-email');
 })->middleware('auth')->name('verification.notice');
 
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
+
+    $user = $request->user();
+
+    // Redirect based on role
+    if ($user->hasRole('user')) {
+        return redirect('/user');
+    }
 
     return redirect('/admin');
 })->middleware(['auth', 'signed'])->name('verification.verify');

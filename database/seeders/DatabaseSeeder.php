@@ -12,6 +12,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create super admin role first
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin']);
+
         // Create admin user
         $admin = User::firstOrCreate([
             'email' => 'admin@example.com',

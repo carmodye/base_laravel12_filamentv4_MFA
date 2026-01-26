@@ -11,6 +11,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Panel;
 use Jeffgreco13\FilamentBreezy\Traits\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -43,4 +44,20 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        if ($this->hasRole(config('filament-shield.super_admin.name', 'super_admin'))) {
+            return true;
+        }
+
+        return match ($panel->getId()) {
+            'admin' => $this->hasRole('admin') || $this->hasPermissionTo('panel_admin'),
+            'user' => $this->hasRole('user')
+                || $this->hasPermissionTo('panel_user')
+                || $this->hasRole('admin')
+                || $this->hasPermissionTo('panel_admin'),
+            default => false,
+        };
+    }
 }

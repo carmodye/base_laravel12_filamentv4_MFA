@@ -23,6 +23,7 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
 use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
+use App\Http\Middleware\RedirectUserRoleToUserPanel;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -50,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
+                \App\Filament\Widgets\DemoUploadWidget::class,
             ])
             ->plugins([
                 FilamentShieldPlugin::make(),
@@ -72,6 +74,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                RedirectUserRoleToUserPanel::class,
             ])
             ->viteTheme('resources/css/filament/admin/theme.css');
     }

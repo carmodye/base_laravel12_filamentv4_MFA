@@ -14,6 +14,9 @@ class OrganizationSeeder extends Seeder
         // Create 2 root organizations
         $root1 = Organization::create(['name' => 'Root Org 1']);
         $root2 = Organization::create(['name' => 'Root Org 2']);
+        $root3 = Organization::create(['name' => 'dev1']);
+        $root4 = Organization::create(['name' => 'qa2']);
+        
 
         // Create 1 child for each root
         Organization::create([

@@ -20,6 +20,8 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+use App\Filament\Resources\Contents\ContentResource;
+use App\Http\Middleware\RedirectToProperPanelMiddleware;
 
 class UserPanelProvider extends PanelProvider
 {
@@ -27,19 +29,22 @@ class UserPanelProvider extends PanelProvider
     {
         return $panel
             ->id('user')
-            ->path('userpanel')
+            ->path('user')
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/User/Resources'), for: 'App\Filament\User\Resources')
-            ->discoverPages(in: app_path('Filament/User/Pages'), for: 'App\Filament\User\Pages')
+            ->resources([
+                ContentResource::class,
+            ])
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/User/Widgets'), for: 'App\Filament\User\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
+                \App\Filament\Widgets\DemoUploadWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -53,6 +58,7 @@ class UserPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                RedirectToProperPanelMiddleware::class,
                 Authenticate::class,
             ])
             ->plugins([

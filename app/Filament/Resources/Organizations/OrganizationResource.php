@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class OrganizationResource extends Resource
 {
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
+
     protected static ?string $model = Organization::class;
 
     protected static ?string $recordTitleAttribute = 'name';
